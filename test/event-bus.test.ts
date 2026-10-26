@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createEventBus } from "../src/platform/event-bus.ts";
+import { reset } from "../src/platform/db.ts";
+import { seed } from "../src/modules/inventory/repo.ts";
+import { placeOrder } from "../src/modules/orders/index.ts";
+import { sent } from "../src/modules/notifications/index.ts";
 
 const payload = { orderId: "ord_1", email: "a@example.com", amountPaise: 100 };
 
@@ -35,4 +39,11 @@ test("unsubscribe stops delivery", () => {
   assert.equal(n, 1);
 });
 
-test.todo("orders publishes order.placed, and notifications subscribes to it");
+test("orders publishes order.placed, and notifications subscribes to it", () => {
+  reset();
+  seed();
+  const result = placeOrder({ sku: "sku-1", qty: 1, unitPaise: 45000, email: "a@example.com" });
+
+  assert.equal(result.ok, true);
+  assert.equal(sent().length, 1);
+});
