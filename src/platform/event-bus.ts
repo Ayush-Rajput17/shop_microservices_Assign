@@ -23,5 +23,30 @@ export interface EventBus {
 }
 
 export function createEventBus(): EventBus {
-  throw new Error("not implemented");
+  const handlers = new Map<EventName, Array<{ fn: Handler<EventName> }>>();
+
+  return {
+    subscribe(name, fn) {
+      const registrations = handlers.get(name) ?? [];
+      const registration = { fn: fn as Handler<EventName> };
+      registrations.push(registration);
+      handlers.set(name, registrations);
+
+      return () => {
+        const index = registrations.indexOf(registration);
+        if (index >= 0) registrations.splice(index, 1);
+      };
+    },
+    publish(name, payload) {
+      const registrations = [...(handlers.get(name) ?? [])];
+      for (const { fn } of registrations) {
+        try {
+          fn(payload as DomainEvents[EventName]);
+        } catch {
+          // A failing subscriber must not prevent later subscribers from running.
+        }
+      }
+      return registrations.length;
+    },
+  };
 }
